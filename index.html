@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced To-Do List (สไตล์ iPadOS)</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;700&display=swap');
+
+        :root {
+            --bg-color: rgba(242, 242, 247, 0.9);
+            --bg-color-solid: #f2f2f7;
+            --text-color: #1d1d1f;
+            --text-muted-color: #8e8e93;
+            --border-color: rgba(0, 0, 0, 0.1);
+            --item-bg-color: #ffffff;
+            --shadow-color: rgba(0, 0, 0, 0.05);
+            --primary-color: #007aff;
+            --delete-hover-color: #ff3b30;
+            --priority-high: #ff3b30;
+            --priority-medium: #ff9500;
+            --priority-low: #34c759;
+        }
+
+        body.dark-mode {
+            --bg-color: rgba(29, 29, 31, 0.85);
+            --bg-color-solid: #1d1d1f;
+            --text-color: #f5f5f7;
+            --text-muted-color: #8d8d92;
+            --border-color: rgba(255, 255, 255, 0.15);
+            --item-bg-color: #2c2c2e;
+            --shadow-color: rgba(0, 0, 0, 0.2);
+        }
+
+        body {
+            font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+            transition: background-color 0.3s ease;
+        }
+
+        /* --- Views --- */
+        #authView, #appView {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* --- Auth Container --- */
+        .auth-container {
+            background-color: var(--bg-color);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 450px;
+        }
+        
+        .auth-container h2 {
+            color: var(--text-color);
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        /* --- App Container --- */
+        .app-container {
+            background-color: var(--bg-color);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 700px;
+            height: 85vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .app-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .app-header h1 {
+            font-weight: 700;
+            color: var(--text-color);
+            margin: 0;
+            font-size: 1.75rem;
+        }
+        
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .theme-switch-wrapper {
+            display: flex;
+            align-items: center;
+        }
+        
+        .theme-switch { display: inline-block; height: 22px; position: relative; width: 40px; }
+        .theme-switch input { display:none; }
+        .slider { background-color: #ccc; bottom: 0; cursor: pointer; left: 0; position: absolute; right: 0; top: 0; transition: .4s; border-radius: 22px; }
+        .slider:before { background-color: #fff; bottom: 2px; content: ""; height: 18px; left: 2px; position: absolute; transition: .4s; width: 18px; border-radius: 50%; }
+        input:checked + .slider { background-color: #66bb6a; }
+        input:checked + .slider:before { transform: translateX(18px); }
+
+        .controls-toolbar { padding: 0.75rem 1.5rem; border-bottom: 1px solid var(--border-color); background-color: var(--bg-color-solid); }
+        .task-list-container { flex-grow: 1; overflow-y: auto; padding: 1rem 1.5rem; }
+        .input-area { padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); background-color: var(--bg-color-solid); }
+
+        .task-item {
+            background-color: var(--item-bg-color);
+            border-radius: 12px;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 2px 10px var(--shadow-color);
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 0.5rem 0.75rem 0;
+            border-left: 5px solid transparent;
+        }
+        .task-item.priority-high { border-left-color: var(--priority-high); }
+        .task-item.priority-medium { border-left-color: var(--priority-medium); }
+        .task-item.priority-low { border-left-color: var(--priority-low); }
+        .task-content { flex-grow: 1; padding: 0 1rem; cursor: pointer; }
+        .task-text { color: var(--text-color); font-size: 1.1rem; display: block; }
+        .task-item.completed .task-text { text-decoration: line-through; color: var(--text-muted-color); }
+        .task-details { font-size: 0.8rem; color: var(--text-muted-color); }
+        .task-actions button { background: none; border: none; color: var(--text-muted-color); font-size: 1.25rem; padding: 0.25rem 0.5rem; transition: color 0.2s ease; }
+        .task-actions button:hover { color: var(--primary-color); }
+        .task-actions .delete-btn:hover { color: var(--delete-hover-color); }
+
+        .form-control, .form-select, .btn { border-radius: 10px; }
+        .form-control, .form-select {
+            background-color: var(--item-bg-color);
+            color: var(--text-color);
+            border-color: var(--border-color);
+        }
+        .form-control:focus, .form-select:focus {
+            background-color: var(--item-bg-color);
+            color: var(--text-color);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.3);
+        }
+        .status-message, .auth-error { text-align: center; color: var(--text-muted-color); padding: 1rem 0; }
+        .auth-error { color: var(--delete-hover-color); }
+        .modal-content { background-color: var(--bg-color-solid); color: var(--text-color); border-radius: 15px; }
+        .modal-header, .modal-footer { border-bottom-color: var(--border-color); border-top-color: var(--border-color); }
+        .btn-close { filter: invert(var(--is-dark, 0)); }
+        body.dark-mode { --is-dark: 1; }
+    </style>
+</head>
+<body>
+
+    <!-- Authentication View -->
+    <div id="authView">
+        <div class="auth-container">
+            <!-- Login Form -->
+            <form id="loginForm">
+                <h2>เข้าสู่ระบบ</h2>
+                <div class="form-floating mb-3">
+                    <input type="email" class="form-control" id="loginEmail" placeholder="name@example.com" required>
+                    <label for="loginEmail">อีเมล</label>
+                </div>
+                <div class="form-floating mb-3">
+                    <input type="password" class="form-control" id="loginPassword" placeholder="Password" required>
+                    <label for="loginPassword">รหัสผ่าน</label>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 py-2 mb-3">เข้าสู่ระบบ</button>
+                <div id="loginError" class="auth-error"></div>
+                <p class="text-center text-muted">ยังไม่มีบัญชี? <a href="#" id="showRegister">สมัครสมาชิก</a></p>
+            </form>
+
+            <!-- Register Form (hidden by default) -->
+            <form id="registerForm" class="hidden">
+                <h2>สมัครสมาชิก</h2>
+                <div class="form-floating mb-3">
+                    <input type="email" class="form-control" id="registerEmail" placeholder="name@example.com" required>
+                    <label for="registerEmail">อีเมล</label>
+                </div>
+                <div class="form-floating mb-3">
+                    <input type="password" class="form-control" id="registerPassword" placeholder="Password" required>
+                    <label for="registerPassword">รหัสผ่าน (อย่างน้อย 6 ตัวอักษร)</label>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 py-2 mb-3">สมัครสมาชิก</button>
+                <div id="registerError" class="auth-error"></div>
+                <p class="text-center text-muted">มีบัญชีอยู่แล้ว? <a href="#" id="showLogin">เข้าสู่ระบบ</a></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App View (hidden by default) -->
+    <div id="appView" class="hidden">
+        <div class="app-container">
+            <header class="app-header">
+                <div>
+                    <h1>To-Do List</h1>
+                    <p id="userInfo" class="text-muted mb-0 small" style="word-break: break-all;"></p>
+                </div>
+                <div class="header-controls">
+                    <div class="theme-switch-wrapper">
+                        <i class="bi bi-brightness-high-fill me-2"></i>
+                        <label class="theme-switch" for="themeToggle"><input type="checkbox" id="themeToggle"><span class="slider"></span></label>
+                        <i class="bi bi-moon-fill ms-2"></i>
+                    </div>
+                    <button id="logoutBtn" class="btn btn-outline-danger btn-sm"><i class="bi bi-box-arrow-right"></i></button>
+                </div>
+            </header>
+
+            <div class="controls-toolbar">
+                <div class="btn-group w-100" role="group">
+                    <input type="radio" class="btn-check" name="filter" id="filterAll" value="all" checked><label class="btn btn-outline-secondary" for="filterAll">ทั้งหมด</label>
+                    <input type="radio" class="btn-check" name="filter" id="filterActive" value="active"><label class="btn btn-outline-secondary" for="filterActive">กำลังทำ</label>
+                    <input type="radio" class="btn-check" name="filter" id="filterCompleted" value="completed"><label class="btn btn-outline-secondary" for="filterCompleted">เสร็จแล้ว</label>
+                </div>
+            </div>
+
+            <main class="task-list-container" id="taskList">
+                <div id="statusMessage" class="status-message">กำลังโหลดรายการ...</div>
+            </main>
+
+            <footer class="input-area">
+                <form id="taskForm" class="row g-2 align-items-center">
+                    <div class="col"><input type="text" id="taskInput" class="form-control" placeholder="เพิ่มรายการใหม่..." required></div>
+                    <div class="col-auto"><input type="date" id="dueDateInput" class="form-control"></div>
+                    <div class="col-auto">
+                        <select id="priorityInput" class="form-select">
+                            <option value="low">ต่ำ</option><option value="medium" selected>กลาง</option><option value="high">สูง</option>
+                        </select>
+                    </div>
+                    <div class="col-auto"><button class="btn btn-primary" type="submit"><i class="bi bi-plus-lg"></i></button></div>
+                </form>
+            </footer>
+        </div>
+    </div>
+    
+    <!-- Edit Task Modal -->
+    <div class="modal fade" id="editTaskModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header"><h5 class="modal-title">แก้ไขรายการ</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+          <div class="modal-body">
+            <form id="editTaskForm">
+                <input type="hidden" id="editTaskId">
+                <div class="mb-3"><label for="editTaskInput" class="form-label">ชื่องาน</label><input type="text" class="form-control" id="editTaskInput" required></div>
+                <div class="mb-3"><label for="editDueDateInput" class="form-label">วันครบกำหนด</label><input type="date" class="form-control" id="editDueDateInput"></div>
+                <div class="mb-3"><label for="editPriorityInput" class="form-label">ความสำคัญ</label>
+                    <select id="editPriorityInput" class="form-select"><option value="low">ต่ำ</option><option value="medium">กลาง</option><option value="high">สูง</option></select>
+                </div>
+            </form>
+          </div>
+          <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button><button type="button" id="saveChangesBtn" class="btn btn-primary">บันทึก</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, serverTimestamp, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB8pUcmeF5IieNFHSNbNeQbFmZweddkh74",
+            authDomain: "ipados-to-do-list-app.firebaseapp.com",
+            projectId: "ipados-to-do-list-app",
+            storageBucket: "ipados-to-do-list-app.firebasestorage.app",
+            messagingSenderId: "689146012663",
+            appId: "1:689146012663:web:756ea3776ceda04b8dc4f2",
+            measurementId: "G-NZDN49RZSD"
+        };
+
+        let app, auth, db, userId;
+        let allTasks = [];
+        let currentFilter = 'all';
+        let editTaskModal;
+        let unsubscribe; // To store the onSnapshot listener
+
+        // DOM Elements
+        const authView = document.getElementById('authView');
+        const appView = document.getElementById('appView');
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const showRegisterLink = document.getElementById('showRegister');
+        const showLoginLink = document.getElementById('showLogin');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const taskListEl = document.getElementById('taskList');
+        const taskForm = document.getElementById('taskForm');
+        const taskInput = document.getElementById('taskInput');
+        const dueDateInput = document.getElementById('dueDateInput');
+        const priorityInput = document.getElementById('priorityInput');
+        const statusMessage = document.getElementById('statusMessage');
+        const userInfoDiv = document.getElementById('userInfo');
+        const themeToggle = document.getElementById('themeToggle');
+        const saveChangesBtn = document.getElementById('saveChangesBtn');
+
+        // --- AUTH LOGIC ---
+        function handleAuthError(error, elementId) {
+            const errorEl = document.getElementById(elementId);
+            let message = "เกิดข้อผิดพลาดที่ไม่รู้จัก";
+            switch (error.code) {
+                case 'auth/invalid-email': message = 'รูปแบบอีเมลไม่ถูกต้อง'; break;
+                case 'auth/user-not-found': message = 'ไม่พบผู้ใช้นี้'; break;
+                case 'auth/wrong-password': message = 'รหัสผ่านไม่ถูกต้อง'; break;
+                case 'auth/email-already-in-use': message = 'อีเมลนี้มีผู้ใช้งานแล้ว'; break;
+                case 'auth/weak-password': message = 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'; break;
+                default: console.error(error);
+            }
+            errorEl.textContent = message;
+        }
+
+        // --- UI LOGIC ---
+        function renderAllTasks() {
+            taskListEl.innerHTML = '';
+            statusMessage.style.display = 'none';
+            const filteredTasks = allTasks.filter(taskDoc => {
+                if (currentFilter === 'active') return !taskDoc.data().completed;
+                if (currentFilter === 'completed') return taskDoc.data().completed;
+                return true;
+            });
+            if (filteredTasks.length === 0) {
+                statusMessage.textContent = allTasks.length === 0 ? 'ยังไม่มีรายการ... ลองเพิ่มดูสิ!' : 'ไม่มีรายการที่ตรงกับตัวกรอง';
+                statusMessage.style.display = 'block';
+            } else {
+                filteredTasks.forEach(renderTask);
+            }
+        }
+
+        function renderTask(taskDoc) {
+            const task = taskDoc.data();
+            const taskId = taskDoc.id;
+            const item = document.createElement('div');
+            item.className = `task-item priority-${task.priority || 'low'} ${task.completed ? 'completed' : ''}`;
+            const priorityMap = { high: 'สูง', medium: 'กลาง', low: 'ต่ำ' };
+            item.innerHTML = `<div class="task-content"><span class="task-text">${task.text}</span><div class="task-details">${task.dueDate ? `<i class="bi bi-calendar-event"></i> ${task.dueDate}` : ''}<span class="ms-2"><i class="bi bi-flag"></i> ${priorityMap[task.priority]}</span></div></div><div class="task-actions"><button class="edit-btn" title="แก้ไข"><i class="bi bi-pencil-square"></i></button><button class="delete-btn" title="ลบ"><i class="bi bi-trash3-fill"></i></button></div>`;
+            item.querySelector('.task-content').addEventListener('click', () => toggleTask(taskId, task.completed));
+            item.querySelector('.delete-btn').addEventListener('click', (e) => { e.stopPropagation(); deleteTask(taskId); });
+            item.querySelector('.edit-btn').addEventListener('click', (e) => { e.stopPropagation(); openEditModal(taskDoc); });
+            taskListEl.appendChild(item);
+        }
+
+        function openEditModal(taskDoc) {
+            const task = taskDoc.data();
+            document.getElementById('editTaskId').value = taskDoc.id;
+            document.getElementById('editTaskInput').value = task.text;
+            document.getElementById('editDueDateInput').value = task.dueDate || '';
+            document.getElementById('editPriorityInput').value = task.priority || 'low';
+            editTaskModal.show();
+        }
+
+        // --- FIRESTORE CRUD ---
+        async function handleSaveChanges() {
+            const id = document.getElementById('editTaskId').value;
+            const updatedData = { text: document.getElementById('editTaskInput').value.trim(), dueDate: document.getElementById('editDueDateInput').value, priority: document.getElementById('editPriorityInput').value };
+            if (!id || !updatedData.text) return;
+            const taskRef = doc(db, `users/${userId}/tasks`, id);
+            await updateDoc(taskRef, updatedData);
+            editTaskModal.hide();
+        }
+        async function toggleTask(id, currentStatus) {
+            const taskRef = doc(db, `users/${userId}/tasks`, id);
+            await updateDoc(taskRef, { completed: !currentStatus });
+        }
+        async function deleteTask(id) {
+            const taskRef = doc(db, `users/${userId}/tasks`, id);
+            await deleteDoc(taskRef);
+        }
+        async function handleAddTask(e) {
+            e.preventDefault();
+            const taskText = taskInput.value.trim();
+            if (!taskText) return;
+            await addDoc(collection(db, `users/${userId}/tasks`), { text: taskText, completed: false, createdAt: serverTimestamp(), dueDate: dueDateInput.value || null, priority: priorityInput.value });
+            taskForm.reset();
+            priorityInput.value = 'medium';
+        }
+
+        // --- INITIALIZATION & EVENT LISTENERS ---
+        function setupRealtimeListener() {
+            if (unsubscribe) unsubscribe(); // Detach old listener if exists
+            const q = query(collection(db, `users/${userId}/tasks`), orderBy('createdAt', 'desc'));
+            unsubscribe = onSnapshot(q, (snapshot) => {
+                allTasks = snapshot.docs;
+                renderAllTasks();
+            }, (error) => console.error("Error listening to tasks: ", error));
+        }
+
+        function setupEventListeners() {
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                document.getElementById('loginError').textContent = '';
+                try {
+                    await signInWithEmailAndPassword(auth, loginForm.loginEmail.value, loginForm.loginPassword.value);
+                } catch (error) { handleAuthError(error, 'loginError'); }
+            });
+
+            registerForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                document.getElementById('registerError').textContent = '';
+                try {
+                    await createUserWithEmailAndPassword(auth, registerForm.registerEmail.value, registerForm.registerPassword.value);
+                } catch (error) { handleAuthError(error, 'registerError'); }
+            });
+
+            logoutBtn.addEventListener('click', () => signOut(auth));
+            showRegisterLink.addEventListener('click', (e) => { e.preventDefault(); loginForm.classList.add('hidden'); registerForm.classList.remove('hidden'); });
+            showLoginLink.addEventListener('click', (e) => { e.preventDefault(); registerForm.classList.add('hidden'); loginForm.classList.remove('hidden'); });
+
+            taskForm.addEventListener('submit', handleAddTask);
+            saveChangesBtn.addEventListener('click', handleSaveChanges);
+            document.querySelectorAll('input[name="filter"]').forEach(radio => radio.addEventListener('change', (e) => { currentFilter = e.target.value; renderAllTasks(); }));
+            themeToggle.addEventListener('change', () => { document.body.classList.toggle('dark-mode'); localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); });
+        }
+
+        function loadTheme() {
+            if (localStorage.getItem('theme') === 'dark') {
+                document.body.classList.add('dark-mode');
+                themeToggle.checked = true;
+            }
+        }
+
+        async function initialize() {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            editTaskModal = new bootstrap.Modal(document.getElementById('editTaskModal'));
+            
+            loadTheme();
+            setupEventListeners();
+
+            try {
+                await setPersistence(auth, browserLocalPersistence);
+            } catch (error) {
+                console.error("Error setting persistence:", error);
+            }
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    userId = user.uid;
+                    userInfoDiv.textContent = `ผู้ใช้: ${user.email}`;
+                    authView.classList.add('hidden');
+                    appView.classList.remove('hidden');
+                    setupRealtimeListener();
+                } else {
+                    userId = null;
+                    if (unsubscribe) unsubscribe();
+                    allTasks = [];
+                    renderAllTasks();
+                    authView.classList.remove('hidden');
+                    appView.classList.add('hidden');
+                }
+            });
+        }
+
+        initialize();
+    </script>
+</body>
+</html>
